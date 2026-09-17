@@ -1,10 +1,12 @@
 package com.awbp.ui;
 
 import com.awbp.data.collections.MyArrayList;
+import com.awbp.data.count.OccurrenceCounter;
 import com.awbp.data.fill.FileFilmFiller;
 import com.awbp.data.fill.FilmFiller;
 import com.awbp.data.fill.ManualFilmFiller;
 import com.awbp.data.fill.RandomFilmFiller;
+import com.awbp.data.io.ResultFileWriter;
 import com.awbp.domain.compare.FilmComparators;
 import com.awbp.domain.model.Film;
 import com.awbp.domain.model.FilmField;
@@ -14,6 +16,8 @@ import com.awbp.domain.sort.QuickSortStrategy;
 import com.awbp.domain.sort.SortChooser;
 import com.awbp.domain.sort.SortStrategy;
 
+import java.io.IOException;
+import java.time.Year;
 import java.util.Comparator;
 import java.util.Scanner;
 
@@ -24,8 +28,13 @@ public class ConsoleApp {
 
     private static final int MIN_COLLECTION_SIZE = 1;
     private static final int MAX_COLLECTION_SIZE = 10_000;
+    private static final int MIN_YEAR = 1895;
+    private static final int MIN_THREADS = 1;
+    private static final int MAX_THREADS = 32;
 
     private final InputReader inputReader;
+    private final ResultFileWriter resultFileWriter = new ResultFileWriter();
+    private final OccurrenceCounter occurrenceCounter = new OccurrenceCounter();
     private MyArrayList<Film> films = new MyArrayList<>();
 
     public ConsoleApp(InputReader inputReader) {
@@ -150,14 +159,53 @@ public class ConsoleApp {
     }
 
     private void printCollection() {
-        // TODO: пункт 3.4
+        if (films.isEmpty()) {
+            System.out.println("Коллекция пуста.");
+            return;
+        }
+
+        System.out.println();
+        System.out.println("--- Текущая коллекция (" + films.size() + ") ---");
+        for (int i = 0; i < films.size(); i++) {
+            System.out.printf("%d. %s%n", i + 1, films.get(i));
+        }
     }
 
     private void writeToFile() {
-        // TODO: пункт 3.4
+        if (films.isEmpty()) {
+            System.out.println("Коллекция пуста. Нечего записывать.");
+            return;
+        }
+
+        String path = inputReader.readLine("Введите путь к файлу для записи: ");
+        try {
+            resultFileWriter.append(path, films);
+            System.out.printf("В файл добавлено %d записей: %s%n", films.size(), path);
+        } catch (IOException e) {
+            System.out.println("Ошибка записи в файл: " + e.getMessage());
+        } catch (RuntimeException e) {
+            System.out.println("Ошибка: " + e.getMessage());
+        }
     }
 
     private void countOccurrences() {
-        // TODO: пункт 3.4
+        if (films.isEmpty()) {
+            System.out.println("Коллекция пуста. Сначала заполните её.");
+            return;
+        }
+
+        int maxYear = Year.now().getValue() + 1;
+        int year = inputReader.readInt("Введите год для подсчёта: ", MIN_YEAR, maxYear);
+        int threads = inputReader.readInt(
+                "Введите число потоков: ",
+                MIN_THREADS,
+                Math.min(MAX_THREADS, Math.max(MIN_THREADS, films.size()))
+        );
+
+        try {
+            occurrenceCounter.countByYear(films, year, threads);
+        } catch (RuntimeException e) {
+            System.out.println("Ошибка подсчёта: " + e.getMessage());
+        }
     }
 }
