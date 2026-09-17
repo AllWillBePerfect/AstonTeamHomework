@@ -108,7 +108,7 @@ public final class Film {
             if (rating == null) {
                 throw new IllegalArgumentException("Рейтинг обязателен");
             }
-            if (rating < 0.0 || rating > 10.0) {
+            if (!Double.isFinite(rating) || rating < 0.0 || rating > 10.0) {
                 throw new IllegalArgumentException("Рейтинг должен быть в диапазоне [0.0; 10.0]");
             }
         }
